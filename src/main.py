@@ -27,7 +27,7 @@ def get_download_folder():
 def fetch_video_details(url):
     try:
         ydl_opts = {
-    'format': 'bestvideo+bestaudio/best',
+    'format': 'best',
     'merge_output_format': 'mp4',
     'outtmpl': os.path.join(download_folder, f'{video_title}.%(ext)s'),
     'progress_hooks': [progress_hook],
