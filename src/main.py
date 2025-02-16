@@ -95,7 +95,7 @@ def download_video(url, quality):
         if os.path.exists(video_file_path):
             with open(video_file_path, "rb") as file:
                 btn = st.download_button(
-                    label="Download video",
+                    label="Save to Local Storage",
                     data=file,
                     file_name=f"{video_title}.mp4",
                     mime="video/mp4"
