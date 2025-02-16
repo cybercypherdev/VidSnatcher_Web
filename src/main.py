@@ -80,7 +80,7 @@ def download_video(url, video_title):
 
         download_folder = get_download_folder()
         ydl_opts = {
-            'format': 'bestvideo+bestaudio/best',
+            'format': 'best',
             'outtmpl': os.path.join(download_folder, f'{video_title}.%(ext)s'),
             'progress_hooks': [progress_hook],
             'concurrent_fragment_downloads': 4  # Number of concurrent connections
