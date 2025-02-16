@@ -57,9 +57,7 @@ def fetch_video_details(url):
 
 
 def download_video(url, video_title):
-    if not shutil.which("ffmpeg"):
-        st.error("`ffmpeg` is not installed. Please install `ffmpeg` to continue.")
-        return
+ 
 
     try:
         progress_bar = st.progress(0)
