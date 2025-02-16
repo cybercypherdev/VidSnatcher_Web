@@ -17,17 +17,6 @@ video_views = ""
 video_length = ""
 video_size_bytes = ""
 
-def get_download_folder():
-    if os.name == 'nt':  # Windows
-        return os.path.join(os.environ['USERPROFILE'], 'Downloads')
-    elif os.name == 'posix':
-        if 'ANDROID_DATA' in os.environ:  # Android
-            return '/storage/emulated/0/Download'
-        else:  # macOS and Linux
-            return os.path.join(Path.home(), 'Downloads')
-    else:
-        return os.getcwd()  # Default to current working directory if unknown OS
-
 def fetch_video_details(url, quality):
     global video_title, video_views, video_length, video_size_bytes
     try:
@@ -86,7 +75,9 @@ def download_video(url, quality):
                     download_speed = downloaded_bytes / (elapsed_time * 1024)  # in KB/s
                     speed_text.text(f"Speed: {download_speed:.2f} KB/s")
 
-        download_folder = get_download_folder()
+        download_folder = "./downloads"
+        if not os.path.exists(download_folder):
+            os.makedirs(download_folder)
         ydl_opts = {
             'format': quality,
             'outtmpl': os.path.join(download_folder, f'{video_title}.%(ext)s'),
@@ -99,6 +90,18 @@ def download_video(url, quality):
 
         st.success('Video downloaded successfully! Check your Downloads folder.')
         st.balloons()
+
+        video_file_path = os.path.join(download_folder, f'{video_title}.mp4')
+        if os.path.exists(video_file_path):
+            with open(video_file_path, "rb") as file:
+                btn = st.download_button(
+                    label="Download video",
+                    data=file,
+                    file_name=f"{video_title}.mp4",
+                    mime="video/mp4"
+                )
+                if btn:
+                    st.experimental_rerun()  # Automatically trigger the download button
     except yt_dlp.utils.DownloadError as e:
         st.error('An error occurred while downloading the video!')
         st.error(e)
@@ -107,7 +110,7 @@ def download_video(url, quality):
         st.error(e)
 
 st.title('🎥 VidSnatcher')
-st.markdown('Download any  Online Video from a Link! 😱')
+st.markdown('Download any Online Video from a Link! 😱')
 st.markdown('Made with love 💖🎥 by Ephraim Maina. [GitHub Account](https://github.com/cybercypherdev/cybercypherdev)')
 
 url = st.text_input('Enter Video URL:', '')
