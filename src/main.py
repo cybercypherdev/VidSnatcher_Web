@@ -27,8 +27,13 @@ def get_download_folder():
 def fetch_video_details(url):
     try:
         ydl_opts = {
-            'format': 'bestvideo+bestaudio/best',
-        }
+    'format': 'bestvideo+bestaudio/best',
+    'merge_output_format': 'mp4',
+    'outtmpl': os.path.join(download_folder, f'{video_title}.%(ext)s'),
+    'progress_hooks': [progress_hook],
+    'concurrent_fragment_downloads': 4,
+}
+
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=False)
             video_title = info_dict.get('title', None)
