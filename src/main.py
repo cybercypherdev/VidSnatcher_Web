@@ -4,7 +4,6 @@ import time
 import os
 from pathlib import Path
 
-
 # Set page configuration
 st.set_page_config(
     page_title="VidSnatcher",
@@ -24,17 +23,22 @@ def get_download_folder():
     else:
         return os.getcwd()  # Default to current working directory if unknown OS
 
+def progress_hook(d, start_time, progress_bar, status_text, speed_text):
+    if d['status'] == 'downloading':
+        downloaded_bytes = d.get('downloaded_bytes', 0)
+        total_bytes = d.get('total_bytes', 1)
+        if total_bytes is not None:
+            progress_percentage = downloaded_bytes / total_bytes
+            progress_bar.progress(progress_percentage)
+            status_text.text(f"Progress: {progress_percentage:.2%}")
+
+            elapsed_time = time.time() - start_time
+            download_speed = downloaded_bytes / (elapsed_time * 1024)  # in KB/s
+            speed_text.text(f"Speed: {download_speed:.2f} KB/s")
+
 def fetch_video_details(url):
     try:
-        ydl_opts = {
-    'format': 'best',
-    'merge_output_format': 'mp4',
-    'outtmpl': os.path.join(download_folder, f'{video_title}.%(ext)s'),
-    'progress_hooks': [progress_hook],
-    'concurrent_fragment_downloads': 4,
-}
-
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
             info_dict = ydl.extract_info(url, download=False)
             video_title = info_dict.get('title', None)
             video_views = info_dict.get('view_count', None)
@@ -65,24 +69,11 @@ def download_video(url, video_title):
         speed_text = st.empty()
         start_time = time.time()
 
-        def progress_hook(d):
-            if d['status'] == 'downloading':
-                downloaded_bytes = d.get('downloaded_bytes', 0)
-                total_bytes = d.get('total_bytes', 1)
-                if total_bytes is not None:
-                    progress_percentage = downloaded_bytes / total_bytes
-                    progress_bar.progress(progress_percentage)
-                    status_text.text(f"Progress: {progress_percentage:.2%}")
-
-                    elapsed_time = time.time() - start_time
-                    download_speed = downloaded_bytes / (elapsed_time * 1024)  # in KB/s
-                    speed_text.text(f"Speed: {download_speed:.2f} KB/s")
-
         download_folder = get_download_folder()
         ydl_opts = {
             'format': 'best',
             'outtmpl': os.path.join(download_folder, f'{video_title}.%(ext)s'),
-            'progress_hooks': [progress_hook],
+            'progress_hooks': [lambda d: progress_hook(d, start_time, progress_bar, status_text, speed_text)],
             'concurrent_fragment_downloads': 4  # Number of concurrent connections
         }
 
