@@ -3,6 +3,7 @@ import yt_dlp
 import time
 import os
 from pathlib import Path
+import shutil
 
 # Set page configuration
 st.set_page_config(
@@ -12,16 +13,23 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-video_title = ""
-video_views = ""
-video_length = ""
-video_size_bytes = ""
 
-def fetch_video_details(url, quality):
-    global video_title, video_views, video_length, video_size_bytes
+def get_download_folder():
+    if os.name == 'nt':  # Windows
+        return os.path.join(os.environ['USERPROFILE'], 'Downloads')
+    elif os.name == 'posix':
+        if 'ANDROID_DATA' in os.environ:  # Android
+            return '/storage/emulated/0/Download'
+        else:  # macOS and Linux
+            return os.path.join(Path.home(), 'Downloads')
+    else:
+        return os.getcwd()  # Default to current working directory if unknown OS
+
+
+def fetch_video_details(url):
     try:
         ydl_opts = {
-            'format': quality,
+            'format': 'bestvideo+bestaudio/best',
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=False)
@@ -30,32 +38,29 @@ def fetch_video_details(url, quality):
             video_length = info_dict.get('duration', None)
             video_size_bytes = info_dict.get('filesize', None)
 
-            if video_size_bytes:
-                video_size_mbs = video_size_bytes / 1048576
-                st.write(f'Size: {video_size_mbs:.2f} MB')
-            else:
-                st.write('Size: Unknown')
+            video_details = {
+                'title': video_title,
+                'views': video_views,
+                'length': video_length,
+                'size_bytes': video_size_bytes
+            }
 
-            st.write(f'**Title:** {video_title}')
-            st.write(f'**Views:** {video_views}')
-            st.write(f'**Length:** {video_length / 60:.2f} minutes')
+            return video_details
     except yt_dlp.utils.DownloadError as e:
         st.error('An error occurred while fetching video details!')
         st.error(e)
-        # Display available formats
-        st.write("Available formats:")
-        ydl_opts = {}
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info_dict = ydl.extract_info(url, download=False)
-            formats = info_dict.get('formats', [])
-            for f in formats:
-                st.write(f"Format code: {f['format_id']}, Extension: {f['ext']}, Resolution: {f.get('resolution', 'N/A')}")
+        return None
     except Exception as e:
         st.error('An unexpected error occurred!')
         st.error(e)
+        return None
 
-def download_video(url, quality):
-    global video_title, video_views, video_length, video_size_bytes
+
+def download_video(url, video_title):
+    if not shutil.which("ffmpeg"):
+        st.error("`ffmpeg` is not installed. Please install `ffmpeg` to continue.")
+        return
+
     try:
         progress_bar = st.progress(0)
         status_text = st.empty()
@@ -75,11 +80,9 @@ def download_video(url, quality):
                     download_speed = downloaded_bytes / (elapsed_time * 1024)  # in KB/s
                     speed_text.text(f"Speed: {download_speed:.2f} KB/s")
 
-        download_folder = "./downloads"
-        if not os.path.exists(download_folder):
-            os.makedirs(download_folder)
+        download_folder = get_download_folder()
         ydl_opts = {
-            'format': quality,
+            'format': 'bestvideo+bestaudio/best',
             'outtmpl': os.path.join(download_folder, f'{video_title}.%(ext)s'),
             'progress_hooks': [progress_hook],
             'concurrent_fragment_downloads': 4  # Number of concurrent connections
@@ -90,24 +93,13 @@ def download_video(url, quality):
 
         st.success('Video downloaded successfully! Check your Downloads folder.')
         st.balloons()
-
-        video_file_path = os.path.join(download_folder, f'{video_title}.mp4')
-        if os.path.exists(video_file_path):
-            with open(video_file_path, "rb") as file:
-                btn = st.download_button(
-                    label="Save to Local Storage",
-                    data=file,
-                    file_name=f"{video_title}.mp4",
-                    mime="video/mp4"
-                )
-                if btn:
-                    st.experimental_rerun()  # Automatically trigger the download button
     except yt_dlp.utils.DownloadError as e:
         st.error('An error occurred while downloading the video!')
         st.error(e)
     except Exception as e:
         st.error('An unexpected error occurred!')
         st.error(e)
+
 
 st.title('🎥 VidSnatcher')
 st.markdown('Download any Online Video from a Link! 😱')
@@ -117,8 +109,20 @@ url = st.text_input('Enter Video URL:', '')
 
 if url:
     st.video(url)
-    quality = st.selectbox('Select Video Quality:', ['best', 'worst', 'bestvideo', 'bestaudio','worstaudio'])
+
     with st.spinner("Fetching video details..."):
-        fetch_video_details(url, quality)
-    if st.button('Download Video'):
-        download_video(url, quality)
+        video_details = fetch_video_details(url)
+
+    if video_details:
+        if video_details['size_bytes']:
+            size_mbs = video_details['size_bytes'] / 1048576
+            st.write(f'Size: {size_mbs:.2f} MB')
+        else:
+            st.write('Size: Unknown')
+
+        st.write(f'**Title:** {video_details["title"]}')
+        st.write(f'**Views:** {video_details["views"]}')
+        st.write(f'**Length:** {video_details["length"] / 60:.2f} minutes')
+
+        if st.button('Download Video'):
+            download_video(url, video_details['title'])
