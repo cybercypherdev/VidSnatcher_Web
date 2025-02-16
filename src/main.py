@@ -125,4 +125,4 @@ if url:
             video_path = download_video(url, video_details['title'])
             if video_path:
                 with open(video_path, 'rb') as file:
-                    st.download_button('Download', file, file_name=f'{video_details["title"]}.mp4')
+                    st.download_button('Save on Local Storage', file, file_name=f'{video_details["title"]}.mp4')
