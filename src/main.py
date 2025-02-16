@@ -4,6 +4,7 @@ import time
 import os
 from pathlib import Path
 import shutil
+import streamlit_download_button as sd
 
 # Set page configuration
 st.set_page_config(
@@ -12,7 +13,6 @@ st.set_page_config(
     layout="centered",
     initial_sidebar_state="expanded",
 )
-
 
 def get_download_folder():
     if os.name == 'nt':  # Windows
@@ -24,7 +24,6 @@ def get_download_folder():
             return os.path.join(Path.home(), 'Downloads')
     else:
         return os.getcwd()  # Default to current working directory if unknown OS
-
 
 def fetch_video_details(url):
     try:
@@ -55,10 +54,7 @@ def fetch_video_details(url):
         st.error(e)
         return None
 
-
 def download_video(url, video_title):
- 
-
     try:
         progress_bar = st.progress(0)
         status_text = st.empty()
@@ -89,8 +85,11 @@ def download_video(url, video_title):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
 
+        video_path = os.path.join(download_folder, f'{video_title}.mp4')
         st.success('Video downloaded successfully! Check your Downloads folder.')
         st.balloons()
+
+        return video_path
     except yt_dlp.utils.DownloadError as e:
         st.error('An error occurred while downloading the video!')
         st.error(e)
@@ -98,6 +97,7 @@ def download_video(url, video_title):
         st.error('An unexpected error occurred!')
         st.error(e)
 
+    return None
 
 st.title('🎥 VidSnatcher')
 st.markdown('Download any Online Video from a Link! 😱')
@@ -123,4 +123,7 @@ if url:
         st.write(f'**Length:** {video_details["length"] / 60:.2f} minutes')
 
         if st.button('Download Video'):
-            download_video(url, video_details['title'])
+            video_path = download_video(url, video_details['title'])
+            if video_path:
+                with open(video_path, 'rb') as file:
+                    st.download_button('Download', file, file_name=f'{video_details["title"]}.mp4')
