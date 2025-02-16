@@ -3,7 +3,6 @@ import yt_dlp
 import time
 import os
 from pathlib import Path
-import shutil
 
 # Set page configuration
 st.set_page_config(
@@ -12,7 +11,6 @@ st.set_page_config(
     layout="centered",
     initial_sidebar_state="expanded",
 )
-
 
 def get_download_folder():
     if os.name == 'nt':  # Windows
@@ -24,7 +22,6 @@ def get_download_folder():
             return os.path.join(Path.home(), 'Downloads')
     else:
         return os.getcwd()  # Default to current working directory if unknown OS
-
 
 def fetch_video_details(url):
     try:
@@ -55,12 +52,7 @@ def fetch_video_details(url):
         st.error(e)
         return None
 
-
 def download_video(url, video_title):
-    if not shutil.which("ffmpeg"):
-        st.error("`ffmpeg` is not installed. Please install `ffmpeg` to continue.")
-        return
-
     try:
         progress_bar = st.progress(0)
         status_text = st.empty()
@@ -99,7 +91,6 @@ def download_video(url, video_title):
     except Exception as e:
         st.error('An unexpected error occurred!')
         st.error(e)
-
 
 st.title('🎥 VidSnatcher')
 st.markdown('Download any Online Video from a Link! 😱')
